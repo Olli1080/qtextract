@@ -3,7 +3,9 @@ use std::io::{Read, Write};
 use std::path::Path;
 use libflate::zlib;
 use filetime::{FileTime, set_file_times};
+use mime_guess::{mime, MimeGuess};
 use crate::binary_stream::BinaryReader;
+use tree_magic_mini::{from_u8};
 
 pub enum QtNodeAux {
     Directory(Vec<QtNode>),
@@ -24,11 +26,22 @@ pub struct QtNode {
     last_modified: u64
 }
 
+/*fn get_extension(data: &Vec<u8>) -> Result<String, ()>
+{
+    let mime = infer::get(&data);
+    //let mime_type = mime.unwrap().mime_type().parse::<mime::Mime>().unwrap();
+    //let extensions = mime_guess::get_extensions(mime_type.type_().as_ref(), mime_type.subtype().as_ref()).unwrap().to_vec();
+    //if extensions.len() > 0 {
+        return Ok(extensions.get(0).unwrap().to_string());
+    //}    
+    return Err(())
+}*/
+
 impl QtNode {
     fn dump_impl(&self, path: &Path, c: usize) -> std::io::Result<()> {
         let indent = "  ".repeat(c);
         let sanitized_name = self.name.replace(&['/', '\\'][..], "_");
-        let node_path = path.join(sanitized_name);
+        let mut node_path = path.join(sanitized_name);
 
         print!("{}{}", indent, self.name);
 
@@ -62,9 +75,11 @@ impl QtNode {
                     print!(" [compressed]");
                 }
 
-                let mut tmp = Vec::new();
-
-                fs::File::create(&node_path)?.write_all(if *is_compressed {
+                let mut tmp: Vec<u8>;
+                
+                
+                if *is_compressed {
+                    tmp = Vec::new();
                     if data.len() > 4 {
                         println!();
                         print!("{indent}  decompressing... ");
@@ -72,10 +87,24 @@ impl QtNode {
                         decoder.read_to_end(&mut tmp)?;
                         print!("ok, {} bytes", tmp.len());
                     }
-                    &tmp
                 } else {
-                    data
-                })?;
+                    tmp = data.clone();
+                }
+                
+                if let Some(mime) = infer::get(&tmp) {
+                    node_path.set_extension(mime.extension());
+                }
+                
+                /*match infer::get(&tmp). {
+                    Ok(ext) => { 
+                        node_path.set_extension(ext);
+                    },
+                    Err(_) => {
+                        println!("Invalid extension");
+                    }
+                }*/
+                
+                fs::File::create(&node_path)?.write_all(&tmp)?;
 
                 if let Some(last_modified) = maybe_last_modified {
                     let ft = FileTime::from_system_time(last_modified);
