@@ -9,8 +9,8 @@ pub mod aob;
 
 use goblin::pe::{PE, section_table::SectionTable};
 use goblin::{error, Object};
-use std::{fs, env, io::Write, collections::HashSet, result};
-use std::fmt::Debug;
+use std::{fs, env, io::Write, collections::HashSet};
+//use std::fmt::Debug;
 use std::path::PathBuf;
 use goblin::elf::{Elf, SectionHeader};
 use regex::{self, Regex};
@@ -250,7 +250,6 @@ fn x86_extract_mingw(bytes_offset: usize, bytes: &[u8], pe: &PE) -> Option<QtRes
 
 fn x64_extract_elf(bytes_offset: usize, bytes: &[u8], elf: &Elf) -> Option<QtResourceInfo> {
     let mut result = [0usize; 3];
-    //let bytes_rva = elf.fo2rva(bytes_offset)?;
     let mut stream = BinaryReader::new_at(bytes, 0);
 
     for i in 0..3 {
@@ -414,147 +413,9 @@ static TEXT_SIGNATURES_ELF: &[SignatureDefinitionElf] = &[
         signature: define_signature!(b"48 8D 15 ?? ?? ?? ?? 48 8D 35 ?? ?? ?? ?? 48 8D 0D ?? ?? ?? ?? 48 83 EC 08 BF 01 00 00 00 E8"),
         extractor: x64_extract_elf
     },
-    /*SignatureDefinitionElf {
-        /*
-        gcc, 64-bit, relative offsets
-
-        48 8D 15 ?? ?? ?? 00    lea     rdx,
-        48 8D 35 ?? ?? ?? 00    lea     rsi,
-        48 8D 0D ?? ?? ?? 00    lea     rcx,
-        48 83 EC 08             sub     rsp, 8
-        BF 01 00 00 00          mov     edi, 1
-        E8 ?? ?? FF FF          call    sth
-         */
-
-        id: 0,
-        x64: true,
-        signature: define_signature!(b"48 8D 15 ?? ?? ?? 00 48 8D 35 ?? ?? ?? 00 48 8D 0D ?? ?? ?? 00 48 83 EC 08 BF 01 00 00 00 E8 ?? ?? FF FF"),
-        extractor: x64_extract_elf
-    }*/
-    /*SignatureDefinition {
-        /*
-        msvc, 32-bit, absolute offsets
-
-        68 00 00 00 00          push   0x0
-        68 00 00 00 00          push   0x0
-        68 00 00 00 00          push   0x0
-        6a 00                   push   0x0
-        e8 00 00 00 00          call   0x16
-         */
-
-        id: 0,
-        x64: false,
-        signature: define_signature!(b"68 ?? ?? ?? ?? 68 ?? ?? ?? ?? 68 ?? ?? ?? ?? 6A ?? E8 ?? ?? ?? ??"),
-        extractor: x86_extract
-    },
-    SignatureDefinition {
-        /*
-        msvc, 32-bit, absolute offsets
-
-        68 00 00 00 00          push   0x0
-        68 00 00 00 00          push   0x0
-        68 00 00 00 00          push   0x0
-        6a 00                   push   0x0
-        ff 15 00 00 00 00       call   DWORD PTR ds:0x0
-         */
-        id: 1,
-        x64: false,
-        signature: define_signature!(b"68 ?? ?? ?? ?? 68 ?? ?? ?? ?? 68 ?? ?? ?? ?? 6A ?? FF 15"),
-        extractor: x86_extract
-    },
-    SignatureDefinition {
-        /*
-        msvc, 64-bit, relative offsets
-
-        4c 8d 0d 00 00 00 00    lea    r9,[rip+0x0]
-        4c 8d 05 00 00 00 00    lea    r8,[rip+0x0]
-        48 8d 15 00 00 00 00    lea    rdx,[rip+0x0]
-        b9 00 00 00 00          mov    ecx,0x0
-        e8 00 00 00 00          call   0x0
-         */
-        id: 2,
-        x64: true,
-        signature: define_signature!(b"4C 8D 0D ?? ?? ?? ?? 4C 8D 05 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? B9 ?? 00 00 00 E8"),
-        extractor: x64_extract1
-    },
-    SignatureDefinition {
-        /*
-        msvc, 64-bit, relative offsets
-
-        4c 8d 0d 00 00 00 00    lea    r9,[rip+0x0]
-        4c 8d 05 00 00 00 00    lea    r8,[rip+0x0]
-        48 8d 15 00 00 00 00    lea    rdx,[rip+0x0]
-        b9 00 00 00 00          mov    ecx,0x0
-        ff 15 ef d7 02 00       call   QWORD PTR [rip+0x0]
-         */
-        id: 3,
-        x64: true,
-        signature: define_signature!(b"4C 8D 0D ?? ?? ?? ?? 4C 8D 05 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? B9 ?? 00 00 00 FF 15"),
-        extractor: x64_extract1
-    },
-    SignatureDefinition {
-        /*
-        msvc, 64-bit, relative offsets
-
-        4c 8d 0d 00 00 00 00    lea    r9,[rip+0x0]
-        b9 00 00 00 00          mov    ecx,0x0
-        4c 8d 05 00 00 00 00    lea    r8,[rip+0x0]
-        48 8d 15 00 00 00 00    lea    rdx,[rip+0x0]
-        e8 00 00 00 00          call   0x23
-         */
-        id: 4,
-        x64: true,
-        signature: define_signature!(b"4C 8D 0D ?? ?? ?? ?? B9 ?? ?? ?? ?? 4C 8D 05 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? E8"),
-        extractor: x64_extract2
-    },
-    SignatureDefinition {
-        /*
-        msvc, 64-bit, relative offsets
-
-        4c 8d 0d 00 00 00 00    lea    r9,[rip+0x0]
-        b9 00 00 00 00          mov    ecx,0x0
-        4c 8d 05 00 00 00 00    lea    r8,[rip+0x0]
-        48 8d 15 00 00 00 00    lea    rdx,[rip+0x0]
-        ff 15 00 00 00 00       call   QWORD PTR [rip+0x0]
-         */
-        id: 5,
-        x64: true,
-        signature: define_signature!(b"4C 8D 0D ?? ?? ?? ?? B9 ?? ?? ?? ?? 4C 8D 05 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? FF 15"),
-        extractor: x64_extract2
-    },
-    SignatureDefinition {
-        /*
-        mingw, 32-bit, absolute offsets (see issue #8)
-
-        c7 44 24 0c 00 00 00 00 mov    DWORD PTR [esp+0xc],0x0
-        c7 44 24 08 00 00 00 00 mov    DWORD PTR [esp+0x8],0x0
-        c7 44 24 04 00 00 00 00 mov    DWORD PTR [esp+0x4],0x0
-        c7 04 24 00 00 00 00    mov    DWORD PTR [esp],0x0
-        ff 15 00 00 00 00       call   DWORD PTR ds:0x0
-         */
-        id: 6,
-        x64: false,
-        signature: define_signature!(b"C7 44 24 0C ?? ?? ?? ?? C7 44 24 08 ?? ?? ?? ?? C7 44 24 04 ?? ?? ?? ?? C7 04 24 ?? 00 00 00 FF 15"),
-        extractor: x86_extract_mingw
-    },
-    SignatureDefinition {
-        /*
-        mingw, 32-bit, absolute offsets
-
-        c7 44 24 0c 00 00 00 00 mov    DWORD PTR [esp+0xc],0x0
-        c7 44 24 08 00 00 00 00 mov    DWORD PTR [esp+0x8],0x0
-        c7 44 24 04 00 00 00 00 mov    DWORD PTR [esp+0x4],0x0
-        c7 04 24 00 00 00 00    mov    DWORD PTR [esp],0x0
-        e8 00 00 00 00          call   0x0
-         */
-        id: 7,
-        x64: false,
-        signature: define_signature!(b"C7 44 24 0C ?? ?? ?? ?? C7 44 24 08 ?? ?? ?? ?? C7 44 24 04 ?? ?? ?? ?? C7 04 24 ?? 00 00 00 E8"),
-        extractor: x86_extract_mingw
-    }*/
 ];
 
-fn get_target_section<'a>(pe: &'a PE) -> Option<&'a SectionTable> {
+fn get_target_section_pe<'a>(pe: &'a PE) -> Option<&'a SectionTable> {
     if !check_opt("--scanall") {
         if let Some(target) = check_opt_arg("--section") {
             for v in &pe.sections {
@@ -589,59 +450,59 @@ fn get_target_section_elf<'a>(elf: &'a Elf) -> Option<&'a SectionHeader> {
     }
     None
 }
-
-fn do_scan_pe(buffer: &[u8], start: usize, end: usize, pe: &PE) -> Vec<QtResourceInfo> {
+fn do_scan(buffer: &[u8], start: usize, end: usize, object: &Object) -> Option<Vec<QtResourceInfo>> {
     let mut seen = HashSet::<usize>::new();
     let mut results = Vec::<QtResourceInfo>::new();
 
-    for def in TEXT_SIGNATURES_PE {
-        if def.x64 == pe.is_64 {
-            for fo in def.scan_all(buffer, start, end) {
-                if let Some(mut info) = (def.extractor)(fo, &buffer[fo..fo+def.signature.len()], pe) {
-                    if info.version < 10 { // simple sanity check
-                        if !seen.contains(&info.data) {
-                            seen.insert(info.data);
-                            info.signature_id = def.id;
-                            results.push(info);
+    match object {
+        Object::Elf(elf) => {
+            for def in TEXT_SIGNATURES_ELF {
+                if def.x64 == elf.is_64 {
+                    for fo in def.scan_all(buffer, start, end) {
+                        if let Some(mut info) = (def.extractor)(fo, &buffer[fo..fo + def.signature.len()], elf) {
+                            if info.version < 10 { // simple sanity check
+                                if !seen.contains(&info.data) {
+                                    seen.insert(info.data);
+                                    info.signature_id = def.id;
+                                    results.push(info);
+                                }
+                                continue;
+                            }
                         }
-                        continue;
+
+                        #[cfg(debug_assertions)]
+                        println!("DEBUG: Failed to extract parameters from signature at {:#08X}. Likely false positive", fo);
                     }
                 }
-
-                #[cfg(debug_assertions)]
-                println!("DEBUG: Failed to extract parameters from signature at {:#08X}. Likely false positive", fo);
             }
+            Some(results)
         }
-    }
-
-    results
-}
-
-fn do_scan_elf(buffer: &[u8], start: usize, end: usize, elf: &Elf) -> Vec<QtResourceInfo> {
-    let mut seen = HashSet::<usize>::new();
-    let mut results = Vec::<QtResourceInfo>::new();
-
-    for def in TEXT_SIGNATURES_ELF {
-        if def.x64 == elf.is_64 {
-            for fo in def.scan_all(buffer, start, end) {
-                if let Some(mut info) = (def.extractor)(fo, &buffer[fo..fo+def.signature.len()], elf) {
-                    if info.version < 10 { // simple sanity check
-                        if !seen.contains(&info.data) {
-                            seen.insert(info.data);
-                            info.signature_id = def.id;
-                            results.push(info);
+        Object::PE(pe) => {
+            for def in TEXT_SIGNATURES_PE {
+                if def.x64 == pe.is_64 {
+                    for fo in def.scan_all(buffer, start, end) {
+                        if let Some(mut info) = (def.extractor)(fo, &buffer[fo..fo+def.signature.len()], pe) {
+                            if info.version < 10 { // simple sanity check
+                                if !seen.contains(&info.data) {
+                                    seen.insert(info.data);
+                                    info.signature_id = def.id;
+                                    results.push(info);
+                                }
+                                continue;
+                            }
                         }
-                        continue;
+
+                        #[cfg(debug_assertions)]
+                        println!("DEBUG: Failed to extract parameters from signature at {:#08X}. Likely false positive", fo);
                     }
                 }
-
-                #[cfg(debug_assertions)]
-                println!("DEBUG: Failed to extract parameters from signature at {:#08X}. Likely false positive", fo);
             }
+            Some(results)
         }
+        Object::Mach(_) => { None }
+        Object::Archive(_) => { None }
+        Object::Unknown(_) => { None }
     }
-
-    results
 }
 
 fn check_data_opt(pe: &PE) -> Option<Vec<QtResourceInfo>> {
@@ -683,122 +544,84 @@ fn check_data_opt(pe: &PE) -> Option<Vec<QtResourceInfo>> {
 }
 
 // returns a pointer to a function like this: https://i.imgur.com/ilfgGPG.png
-fn ask_resource_data(buffer: &[u8], pe: &PE) -> Option<Vec<QtResourceInfo>> {
+fn ask_resource_data(buffer: &[u8], object: &Object) -> Option<Vec<QtResourceInfo>> {
     let start : usize;
     let end : usize;
 
-    if let Some(section) = get_target_section(pe) {
-        start = section.pointer_to_raw_data as usize;
-        end = start + section.size_of_raw_data as usize;
-        println!("Scanning section {} ({:#08x}-{:#08x})...", section.name().unwrap_or("N/A"), start, end);
-    } else {
-        start = 0;
-        end = buffer.len();
-        println!("Scanning file...");
-    }
-
-    let start_time = std::time::Instant::now();
-    let results = do_scan_pe(buffer, start, end, pe);
-    println!("Done in {:.2?}", start_time.elapsed());
-
-    if !results.is_empty() {
-        let chunk_id = if let Some(arg) = check_opt_arg("--chunk") {
-            let id: usize = arg.trim().parse().expect("integer value expected for `chunk` parameter");
-            assert!(id <= results.len(), "value provided by `chunk` parameter is out of range");
-            id
-        } else {
-            println!("Select a resource chunk to dump:");
-            println!("0 - Dump all");
-            
-            for (i, result) in results.iter().enumerate() {
-                println!("{} - {:#08X} (via signature {}: version={}, data={:#08X}, name={:#08X}, tree={:#08X})", i + 1, result.registrar, result.signature_id, result.version, result.data, result.name, result.tree);
+    match object {
+        Object::Elf(elf) => {
+            if let Some(section) = get_target_section_elf(elf) {
+                start = section.sh_addr as usize;//.pointer_to_raw_data as usize;
+                end = start;//start + section.size_of_raw_data as usize;
+                //TODO::
+                println!("Scanning section {} ({:#08x}-{:#08x})...", elf.shdr_strtab.get_at(section.sh_name).unwrap_or("N/A"), start, end);
+            } else {
+                start = 0;
+                end = buffer.len();
+                println!("Scanning file...");
             }
+        }
+        Object::PE(pe) => {
+            if let Some(section) = get_target_section_pe(pe) {
+                start = section.pointer_to_raw_data as usize;
+                end = start + section.size_of_raw_data as usize;
+                println!("Scanning section {} ({:#08x}-{:#08x})...", section.name().unwrap_or("N/A"), start, end);
+            } else {
+                start = 0;
+                end = buffer.len();
+                println!("Scanning file...");
+            }
+        }
+        Object::Mach(_) => { return None; }
+        Object::Archive(_) => { return None; }
+        Object::Unknown(_) => { return None; }
+    }
+    let start_time = std::time::Instant::now();
+    if let Some(results) = do_scan(buffer, start, end, object)
+    {
+        println!("Done in {:.2?}", start_time.elapsed());
 
-            println!();
+        if !results.is_empty() {
+            let chunk_id = if let Some(arg) = check_opt_arg("--chunk") {
+                let id: usize = arg.trim().parse().expect("integer value expected for `chunk` parameter");
+                assert!(id <= results.len(), "value provided by `chunk` parameter is out of range");
+                id
+            } else {
+                println!("Select a resource chunk to dump:");
+                println!("0 - Dump all");
 
-            loop {
-                print!(">");
-                std::io::stdout().flush().unwrap();
-
-                let mut input = String::new();
-                let _ = std::io::stdin().read_line(&mut input);
-                let selection = input.trim().parse::<usize>().unwrap_or(usize::MAX);
-
-                if selection <= results.len() {
-                    break selection;
+                for (i, result) in results.iter().enumerate() {
+                    println!("{} - {:#08X} (via signature {}: version={}, data={:#08X}, name={:#08X}, tree={:#08X})", i + 1, result.registrar, result.signature_id, result.version, result.data, result.name, result.tree);
                 }
 
-                println!("Please enter a number between 0 and {}", results.len());
-            }
-        };
+                println!();
 
-        return Some(if chunk_id == 0 {
-            results
-        } else {
-            vec![ results[chunk_id - 1] ]
-        });
-    }
+                loop {
+                    print!(">");
+                    std::io::stdout().flush().unwrap();
 
-    None
-}
+                    let mut input = String::new();
+                    let _ = std::io::stdin().read_line(&mut input);
+                    let selection = input.trim().parse::<usize>().unwrap_or(usize::MAX);
 
-fn ask_resource_data_elf(buffer: &[u8], elf: &Elf) -> Option<Vec<QtResourceInfo>> {
-    let start : usize;
-    let end : usize;
+                    if selection <= results.len() {
+                        break selection;
+                    }
 
-    if let Some(section) = get_target_section_elf(elf) {
-        start = section.sh_addr as usize;//.pointer_to_raw_data as usize;
-        end = start;//start + section.size_of_raw_data as usize;
-        println!("Scanning section {} ({:#08x}-{:#08x})...", elf.shdr_strtab.get_at(section.sh_name).unwrap_or("N/A"), start, end);
-    } else {
-        start = 0;
-        end = buffer.len();
-        println!("Scanning file...");
-    }
-
-    let start_time = std::time::Instant::now();
-    let results = do_scan_elf(buffer, start, end, elf);
-    println!("Done in {:.2?}", start_time.elapsed());
-
-    if !results.is_empty() {
-        let chunk_id = if let Some(arg) = check_opt_arg("--chunk") {
-            let id: usize = arg.trim().parse().expect("integer value expected for `chunk` parameter");
-            assert!(id <= results.len(), "value provided by `chunk` parameter is out of range");
-            id
-        } else {
-            println!("Select a resource chunk to dump:");
-            println!("0 - Dump all");
-
-            for (i, result) in results.iter().enumerate() {
-                println!("{} - {:#08X} (via signature {}: version={}, data={:#08X}, name={:#08X}, tree={:#08X})", i + 1, result.registrar, result.signature_id, result.version, result.data, result.name, result.tree);
-            }
-
-            println!();
-
-            loop {
-                print!(">");
-                std::io::stdout().flush().unwrap();
-
-                let mut input = String::new();
-                let _ = std::io::stdin().read_line(&mut input);
-                let selection = input.trim().parse::<usize>().unwrap_or(usize::MAX);
-
-                if selection <= results.len() {
-                    break selection;
+                    println!("Please enter a number between 0 and {}", results.len());
                 }
+            };
 
-                println!("Please enter a number between 0 and {}", results.len());
-            }
-        };
+            return Some(if chunk_id == 0 {
+                results
+            } else {
+                vec![ results[chunk_id - 1] ]
+            });
+        }
 
-        return Some(if chunk_id == 0 {
-            results
-        } else {
-            vec![ results[chunk_id - 1] ]
-        });
+        None
     }
-
-    None
+    else { return None; }
 }
 
 fn main() {
@@ -819,28 +642,10 @@ fn main() {
             if i == 1 {
                 match Object::parse(&buffer)? {
                     Object::Elf(elf) => {
-                        //println!("elf: {:#?}", &elf);
-                        elf.dynsyms.into_iter().for_each(|symbol| {
-                            if elf.dynstrtab.get_at(symbol.st_name).unwrap().contains("qRegisterResourceData")
-                            {
-                                println!("{:?}", elf.dynstrtab.get_at(symbol.st_name).unwrap());
-                            }
-                        });
-
-                        /*let magic_func = elf
-                            .dynsyms
-                            .into_iter()
-                            .find(|symbol| elf.dynstrtab.get_at(symbol.st_name) == Some("Pg_magic_func"))
-                            .with_context(|| "Failed to find Pg_magic_func")?;*/
-
-                        for section in &elf.section_headers {
-                            println!("{}", elf.shdr_strtab.get_at(section.sh_name).unwrap_or(""));
-                        }
-                        
-                        return Ok(ask_resource_data_elf(&buffer, &elf));
+                        return Ok(ask_resource_data(&buffer, &Object::Elf(elf)));
                     },
                     Object::PE(pe) => {
-                        return Ok(check_data_opt(&pe).or_else(|| ask_resource_data(&buffer, &pe)));
+                        return Ok(check_data_opt(&pe).or_else(|| ask_resource_data(&buffer, &Object::PE(pe))));
                     },
                     Object::Mach(mach) => {
                         println!("mach: {:#?}", &mach);
@@ -855,7 +660,6 @@ fn main() {
         Ok(None)
     }
 
-    //let ressource = get_ressources(buffer).expect("Invalid file");
     let resource = get_ressources(&buffer).expect("Invalid resource file");
 
     let output_directory = PathBuf::from(check_opt_arg("--output").unwrap_or("qtextract-output".to_string()));
